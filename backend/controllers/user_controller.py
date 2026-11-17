@@ -24,7 +24,7 @@ def get_profile():
 
 @token_required
 def update_profile():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     allowed = ['name', 'phone', 'profile', 'specialization']
     update_data = {k: v for k, v in data.items() if k in allowed}
     update_data['updated_at'] = datetime.utcnow()

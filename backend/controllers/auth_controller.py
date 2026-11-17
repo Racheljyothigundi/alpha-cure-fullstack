@@ -6,10 +6,11 @@ from datetime import datetime
 
 from utils.db import get_db
 from utils.jwt_utils import generate_token
+from utils.validators import validate_email, validate_password
 
 
 def signup():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
@@ -23,11 +24,15 @@ def signup():
     if not all([name, email, password]):
         return jsonify({'error': 'Name, email and password are required'}), 400
 
+    if not validate_email(email):
+        return jsonify({'error': 'Please provide a valid email address'}), 400
+
     if role not in ['patient', 'doctor']:
         return jsonify({'error': 'Invalid role'}), 400
 
-    if len(password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    password_ok, password_error = validate_password(password)
+    if not password_ok:
+        return jsonify({'error': password_error}), 400
 
     db = get_db()
 
@@ -76,7 +81,7 @@ def signup():
 
 
 def login():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 

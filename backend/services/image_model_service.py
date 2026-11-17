@@ -7,8 +7,12 @@ from io import BytesIO
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 from PIL import Image
+
+try:
+    import tensorflow as tf
+except ImportError:  # Image models remain listed, but inference is unavailable without TensorFlow.
+    tf = None
 
 
 IMAGE_MODEL_CONFIGS = {
@@ -204,6 +208,9 @@ def _format_label(label: str) -> str:
 
 def load_image_model(model_key: str, force: bool = False):
     """Load one trained image model and its metadata."""
+    if tf is None:
+        raise RuntimeError("TensorFlow is not installed; image screening is unavailable.")
+
     if model_key in _MODEL_CACHE and model_key in _METADATA_CACHE and not force:
         return _MODEL_CACHE[model_key], _METADATA_CACHE[model_key]
 
@@ -288,7 +295,11 @@ def list_image_screening_models() -> list[dict]:
                 "short_note": config["short_note"],
                 "note": (metadata or {}).get("note", config["default_note"]),
                 "class_count": len((metadata or {}).get("class_names", [])),
-                "available": _model_path(model_key).exists() and labels_path.exists(),
+                "available": (
+                    tf is not None
+                    and _model_path(model_key).exists()
+                    and labels_path.exists()
+                ),
             }
         )
     return models

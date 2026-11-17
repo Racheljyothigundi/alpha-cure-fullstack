@@ -39,7 +39,7 @@ def token_required(f):
             request.user_role = data['role']
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token expired'}), 401
-        except jwt.InvalidTokenError:
+        except (jwt.InvalidTokenError, KeyError, TypeError):
             return jsonify({'error': 'Invalid token'}), 401
         return f(*args, **kwargs)
     return decorated
@@ -61,7 +61,9 @@ def role_required(*roles):
                     return jsonify({'error': 'Access denied'}), 403
                 request.user_id = data['user_id']
                 request.user_role = data['role']
-            except jwt.InvalidTokenError:
+            except jwt.ExpiredSignatureError:
+                return jsonify({'error': 'Token expired'}), 401
+            except (jwt.InvalidTokenError, KeyError, TypeError):
                 return jsonify({'error': 'Invalid token'}), 401
             return f(*args, **kwargs)
         return decorated

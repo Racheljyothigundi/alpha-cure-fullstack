@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 
 from utils.db import get_db
 from utils.jwt_utils import role_required
+from utils.validators import validate_prediction_input
 
 
 @role_required('patient')
@@ -18,21 +19,25 @@ def predict_cancer():
     """
     from model_selector import load_model, predict
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({'error': 'No input data provided'}), 400
 
+    valid, validation_error = validate_prediction_input(data)
+    if not valid:
+        return jsonify({'error': validation_error}), 400
+
     # Extract clinical features (matches notebook dataset columns)
     features = {
-        'age': float(data.get('age', 0)),
-        'gender': float(data.get('gender', 0)),       # 0=Female, 1=Male
-        'bmi': float(data.get('bmi', 22.0)),
-        'smoking': float(data.get('smoking', 0)),      # 0=No, 1=Yes
-        'genetic_risk': float(data.get('genetic_risk', 0)),   # 0=Low, 1=Med, 2=High
-        'physical_activity': float(data.get('physical_activity', 3)),
-        'alcohol_intake': float(data.get('alcohol_intake', 0)),
-        'cancer_history': float(data.get('cancer_history', 0)),
-        'diagnosis': float(data.get('diagnosis', 0)),  # 0=No prior, 1=Yes
+        'age': float(data['age']),
+        'gender': float(data['gender']),       # 0=Female, 1=Male
+        'bmi': float(data['bmi']),
+        'smoking': float(data['smoking']),      # 0=No, 1=Yes
+        'genetic_risk': float(data['genetic_risk']),   # 0=Low, 1=Med, 2=High
+        'physical_activity': float(data['physical_activity']),
+        'alcohol_intake': float(data['alcohol_intake']),
+        'cancer_history': float(data['cancer_history']),
+        'diagnosis': float(data['diagnosis']),  # 0=No prior, 1=Yes
     }
 
     load_model()

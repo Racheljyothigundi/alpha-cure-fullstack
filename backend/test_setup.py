@@ -99,8 +99,22 @@ try:
     print(f"    Connected to MongoDB ✓")
     client.close()
 except Exception as e:
-    print(f"    MongoDB connection failed ✗: {e}")
-    errors.append("Cannot connect to MongoDB")
+    flask_env = os.getenv('FLASK_ENV', '').lower()
+    explicit_fallback = os.getenv('ENABLE_LOCAL_DB_FALLBACK', '').lower() in {
+        '1', 'true', 'yes', 'on'
+    }
+    supports_dev_fallback = (
+        flask_env != 'production'
+        and (explicit_fallback or uri.startswith('mongodb://localhost')
+             or uri.startswith('mongodb://127.0.0.1')
+             or uri.startswith('mongodb+srv://'))
+    )
+    if supports_dev_fallback:
+        print(f"    MongoDB unavailable — local development fallback will be used: {e}")
+        warnings.append("MongoDB unavailable — using local_dev_db.json")
+    else:
+        print(f"    MongoDB connection failed ✗: {e}")
+        errors.append("Cannot connect to MongoDB")
 
 # ─── Model files ───────────────────────────────────────────────────────────────
 print("\n[5] Checking model files:")

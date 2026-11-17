@@ -8,10 +8,11 @@ Pipeline: SMOTE → StandardScaler → RandomForest selector → RF prob augment
 import os
 import pickle
 import numpy as np
-import tensorflow as tf
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectFromModel
+
+try:
+    import tensorflow as tf
+except ImportError:  # TensorFlow is optional when using the deterministic mock model.
+    tf = None
 
 # ─── Global model objects (loaded once) ────────────────────────────────────────
 _ann_model = None
@@ -61,11 +62,14 @@ def load_model():
     model_path = get_model_path()
     artifacts_path = get_artifacts_path()
 
-    if os.path.exists(model_path):
+    if os.path.exists(model_path) and tf is not None:
         _ann_model = tf.keras.models.load_model(model_path)
         print(f"[ModelSelector] ANN model loaded from {model_path}")
     else:
-        print(f"[ModelSelector] WARNING: Model file not found at {model_path}. Using mock predictor.")
+        if tf is None:
+            print("[ModelSelector] WARNING: TensorFlow is not installed. Using mock predictor.")
+        else:
+            print(f"[ModelSelector] WARNING: Model file not found at {model_path}. Using mock predictor.")
         _ann_model = None
 
     if os.path.exists(artifacts_path):
