@@ -227,6 +227,7 @@ export default function PredictionPage() {
   const [imagePreview, setImagePreview] = useState('');
   const [imageModels, setImageModels] = useState(IMAGE_MODEL_FALLBACK);
   const [imageModelsLoading, setImageModelsLoading] = useState(true);
+  const [imageModelsError, setImageModelsError] = useState('');
   const [selectedModelKey, setSelectedModelKey] = useState('skin_lesion');
 
   const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }));
@@ -235,8 +236,10 @@ export default function PredictionPage() {
     let active = true;
 
     const loadImageModels = async () => {
+      setImageModelsLoading(true);
+      setImageModelsError('');
       try {
-        const response = await api.get('/image-models');
+        const response = await api.get('/image-models', { timeout: 10000 });
         if (!active) {
           return;
         }
@@ -253,7 +256,7 @@ export default function PredictionPage() {
       } catch (error) {
         if (active) {
           setImageModels(IMAGE_MODEL_FALLBACK);
-          toast.error('Could not load image screening models.');
+          setImageModelsError('The image service is unavailable. Check that the backend is running, then retry.');
         }
       } finally {
         if (active) {
@@ -267,6 +270,23 @@ export default function PredictionPage() {
       active = false;
     };
   }, []);
+
+  const retryImageModels = () => {
+    setImageModelsLoading(true);
+    setImageModelsError('');
+    api.get('/image-models', { timeout: 10000 })
+      .then((response) => {
+        const models = response.data?.models?.length ? response.data.models : IMAGE_MODEL_FALLBACK;
+        setImageModels(models);
+        const firstAvailable = models.find((model) => model.available) || models[0];
+        if (firstAvailable) setSelectedModelKey(firstAvailable.key);
+      })
+      .catch(() => {
+        setImageModels(IMAGE_MODEL_FALLBACK);
+        setImageModelsError('The image service is unavailable. Check that the backend is running, then retry.');
+      })
+      .finally(() => setImageModelsLoading(false));
+  };
 
   useEffect(() => () => {
     if (imagePreview) {
@@ -363,7 +383,8 @@ export default function PredictionPage() {
     setImageResult(null);
     try {
       const response = await api.post('/predict-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        // Let Axios/browser set the multipart boundary automatically.
+        timeout: 120000,
       });
       setImageResult(response.data);
       toast.success('Image screening complete!');
@@ -479,6 +500,14 @@ export default function PredictionPage() {
                   </div>
                 ) : (
                   <>
+                    {imageModelsError && (
+                      <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                        <span>{imageModelsError}</span>
+                        <button type="button" onClick={retryImageModels} className="btn-secondary shrink-0 px-3 py-1.5 text-xs">
+                          Retry
+                        </button>
+                      </div>
+                    )}
                     <div className="grid md:grid-cols-3 gap-3 mb-4">
                       {imageModels.map((model) => {
                         const isSelected = model.key === selectedModelKey;

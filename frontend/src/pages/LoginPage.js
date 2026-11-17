@@ -21,7 +21,10 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${res.data.user.name}!`);
       navigate(res.data.user.role === 'doctor' ? '/doctor' : '/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.error || 'Login failed';
+      const msg = err.response?.data?.error
+        || (err.code === 'ERR_NETWORK' || !err.response
+          ? 'Cannot reach the backend. Check the Vercel REACT_APP_API_URL setting and make sure the backend is running.'
+          : 'Login failed');
       toast.error(msg);
     } finally {
       setLoading(false);

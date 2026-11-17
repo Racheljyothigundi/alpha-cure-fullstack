@@ -51,7 +51,8 @@ research_outputs/
 research_outputs_*/
 
 # Large ML files
-*.keras
+# Image screening models are required by the backend deployment and are each under GitHub's 100 MB file limit.
+!backend/models/*.keras
 *.h5
 *.npz
 *.xlsx

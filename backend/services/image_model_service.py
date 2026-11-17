@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from io import BytesIO
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-try:
+_TENSORFLOW_AVAILABLE = importlib.util.find_spec("tensorflow") is not None
+
+
+def _load_tensorflow():
+    """Load TensorFlow only when inference is requested, not for model metadata."""
+    if not _TENSORFLOW_AVAILABLE:
+        raise RuntimeError("TensorFlow is not installed; image screening is unavailable.")
+
     import tensorflow as tf
-except ImportError:  # Image models remain listed, but inference is unavailable without TensorFlow.
-    tf = None
+    return tf
 
 
 IMAGE_MODEL_CONFIGS = {
@@ -208,8 +215,7 @@ def _format_label(label: str) -> str:
 
 def load_image_model(model_key: str, force: bool = False):
     """Load one trained image model and its metadata."""
-    if tf is None:
-        raise RuntimeError("TensorFlow is not installed; image screening is unavailable.")
+    tf = _load_tensorflow()
 
     if model_key in _MODEL_CACHE and model_key in _METADATA_CACHE and not force:
         return _MODEL_CACHE[model_key], _METADATA_CACHE[model_key]
@@ -296,7 +302,7 @@ def list_image_screening_models() -> list[dict]:
                 "note": (metadata or {}).get("note", config["default_note"]),
                 "class_count": len((metadata or {}).get("class_names", [])),
                 "available": (
-                    tf is not None
+                    _TENSORFLOW_AVAILABLE
                     and _model_path(model_key).exists()
                     and labels_path.exists()
                 ),

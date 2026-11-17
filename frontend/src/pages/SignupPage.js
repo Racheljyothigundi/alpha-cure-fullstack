@@ -35,7 +35,11 @@ export default function SignupPage() {
       toast.success(res.data.message || 'Account created successfully.');
       navigate(res.data.user.role === 'doctor' ? '/doctor' : '/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Signup failed');
+      const message = err.response?.data?.error
+        || (err.code === 'ERR_NETWORK' || !err.response
+          ? 'Cannot reach the backend. Check the Vercel REACT_APP_API_URL setting and make sure the backend is running.'
+          : 'Signup failed');
+      toast.error(message);
     } finally {
       setLoading(false);
     }
