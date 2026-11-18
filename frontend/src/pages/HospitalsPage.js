@@ -30,11 +30,7 @@ export default function HospitalsPage() {
       .catch(err => {
         setPlaces([]);
         const data = err.response?.data;
-        if (data?.code === 'MAPS_KEY_MISSING') {
-          toast.error('Google Maps is not configured. Add GOOGLE_MAPS_API_KEY to backend/.env and restart the server.');
-        } else {
-          toast.error(data?.error || 'Failed to fetch nearby places');
-        }
+        toast.error(data?.error || 'Failed to fetch nearby places');
       })
       .finally(() => setLoading(false));
   };
@@ -208,7 +204,7 @@ export default function HospitalsPage() {
             <p className="font-semibold text-teal-900 mb-1">🗺️ Location Privacy</p>
             <p className="text-sm text-teal-700 leading-relaxed">
               Your location is only used to search for nearby facilities and is never stored on our servers.
-              Results are provided by Google Maps Places API.
+              Results come from Google Maps or OpenStreetMap. Your location is not stored.
             </p>
           </div>
         </div>
